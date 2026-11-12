@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"image/color"
 	"math"
 	"os"
 	"time"
@@ -209,13 +210,13 @@ func calcFPS() float64 {
 	return float64(len(frameTimes)) / sum
 }
 
-func drawFPS(dl imgui.DrawList, fps float64) {
+func drawFPS(dl *imgui.DrawList, fps float64) {
 	text := fmt.Sprintf("FPS: %.0f", fps)
 	dl.AddRectFilled(toVec2(8, 8), toVec2(140, 30), solidVec4(0, 0, 0, 0.78), 0, 0)
 	dl.AddText(toVec2(15, 12), solidVec4(1, 1, 1, 1), text)
 }
 
-func drawDiag(dl imgui.DrawList, g *Game) {
+func drawDiag(dl *imgui.DrawList, g *Game) {
 	y := float32(36)
 	lines := []struct {
 		txt string
@@ -278,6 +279,7 @@ func RenderFrame(g *Game) {
 			giu.Label("Waiting for game..."),
 			giu.Label(fmt.Sprintf("Base 0x%X  DM 0x%X  VE 0x%X", g.mem.Base, g.DM, g.VE)),
 		)
+		giu.Update() // FIX: force redraw for the waiting window as well
 		return
 	}
 
@@ -306,7 +308,9 @@ func RenderFrame(g *Game) {
 		}
 	}
 
-	dl := giu.GetCanvas().DrawList
+	// FIX: use the background draw list (global) instead of the window-level canvas.
+	// GetCanvas().DrawList is only valid inside a window's layout.
+	dl := imgui.GetBackgroundDrawList()
 
 	if Settings.ShowFOV && Settings.AimEnabled {
 		cx := float32(screenW) / 2
@@ -503,6 +507,9 @@ func RenderFrame(g *Game) {
 		drawMenu()
 	}
 
+	// FIX: force a redraw every frame instead of relying on event-driven updates.
+	giu.Update()
+
 	if time.Since(lastSaveTime) > 2*time.Second {
 		SaveSettings()
 		lastSaveTime = time.Now()
@@ -602,6 +609,11 @@ func RunOverlay(g *Game) {
 		screenH,
 		giu.MasterWindowFlagsNotResizable|giu.MasterWindowFlagsTransparent,
 	)
+
+	// FIX: explicitly set the background to fully transparent.
+	// The transparent flag alone is not enough; the renderer needs a colour.
+	wnd.SetBgColor(color.RGBA{R: 0, G: 0, B: 0, A: 0})
+
 	lastSaveTime = time.Now()
 
 	wnd.Run(func() {
