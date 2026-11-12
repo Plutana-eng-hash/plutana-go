@@ -3,7 +3,7 @@ name: Build Plutana EXE
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:   # lets you run it manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build:
@@ -27,7 +27,7 @@ jobs:
           CGO_ENABLED: '1'
         run: |
           go mod tidy
-          go build -trimpath -buildvcs=false -ldflags="-s -w -H=windowsgui" -o Plutana.exe .
+          go build -trimpath -buildvcs=false -ldflags="-s -w" -o Plutana.exe .
 
       - name: Upload EXE as artifact
         uses: actions/upload-artifact@v4

@@ -32,7 +32,7 @@ func relaunchAsAdmin() {
 		1,
 	)
 	if r <= 32 {
-		fmt.Println("Elevation failed. Run as administrator.")
+		fmt.Println("Elevation failed. Please run as administrator.")
 		time.Sleep(3 * time.Second)
 		os.Exit(1)
 	}
@@ -90,43 +90,69 @@ func getModuleBase(pid uint32, moduleName string) (uintptr, error) {
 
 func main() {
 	if !isAdmin() {
+		fmt.Println("[!] Requesting administrator privileges...")
+		time.Sleep(500 * time.Millisecond)
 		relaunchAsAdmin()
 	}
 
-	fmt.Println("=" + strings.Repeat("=", 58))
-	fmt.Println("Plutana-Go v" + VERSION)
-	fmt.Println("=" + strings.Repeat("=", 58))
+	fmt.Println("=" + strings.Repeat("=", 60))
+	fmt.Println("  Plutana-Go v" + VERSION)
+	fmt.Println("=" + strings.Repeat("=", 60))
+	fmt.Println()
+	fmt.Println("  INSERT  - Toggle settings menu")
+	fmt.Println("  END     - Quit")
+	fmt.Println()
+	fmt.Println("=" + strings.Repeat("=", 60))
+	fmt.Println()
 
 	var pid uint32
+	firstWait := true
 	for {
 		p, err := findPID()
 		if err == nil {
 			pid = p
 			break
 		}
-		fmt.Println("[~] Waiting for Roblox...")
-		time.Sleep(1 * time.Second)
+		if firstWait {
+			fmt.Println("[~] Roblox is not running.")
+			fmt.Println("[~] Please start Roblox and join a game.")
+			fmt.Println("[~] Waiting...")
+			firstWait = false
+		} else {
+			fmt.Println("[~] Still waiting for Roblox...")
+		}
+		time.Sleep(3 * time.Second)
 	}
-	fmt.Printf("[+] Roblox PID: %d\n", pid)
+	fmt.Println()
+	fmt.Printf("[+] Found Roblox! PID: %d\n", pid)
 
 	mem, err := OpenMemory(pid)
 	if err != nil {
 		fmt.Println("[!] OpenProcess failed:", err)
+		fmt.Println("[!] Make sure Roblox is fully loaded, then restart this program.")
+		time.Sleep(5 * time.Second)
 		return
 	}
 	defer mem.Close()
 
 	base, err := getModuleBase(pid, "RobloxPlayerBeta.exe")
 	if err != nil {
-		fmt.Println("[!] Base address failed:", err)
+		fmt.Println("[!] Could not find RobloxPlayerBeta.exe module:", err)
+		time.Sleep(5 * time.Second)
 		return
 	}
 	mem.Base = base
-	fmt.Printf("[+] Base: 0x%X\n", base)
+	fmt.Printf("[+] Base address: 0x%X\n", base)
 
 	off := LoadOffsets()
 	g := NewGame(mem, off)
 	Settings = LoadSettings()
 
+	fmt.Println("[+] Starting overlay...")
+	fmt.Println("[+] Press INSERT to open the settings menu.")
+	fmt.Println("[+] Press END to quit.")
+	fmt.Println()
+
 	RunOverlay(g)
+	fmt.Println("[+] Overlay closed. Goodbye.")
 }

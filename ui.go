@@ -132,15 +132,18 @@ func solidVec4(r, g, b, a float32) imgui.Vec4 {
 
 const (
 	VK_INSERT         = 0x2D
+	VK_END            = 0x23
 	WS_EX_LAYERED     = 0x00080000
 	WS_EX_TRANSPARENT = 0x00000020
 	WS_EX_NOACTIVATE  = 0x08000000
+	WS_EX_TOOLWINDOW  = 0x00000080
 )
 
 var (
 	screenW, screenH int
 	menuVisible      bool
 	insertDown       bool
+	endDown          bool
 	lastSaveTime     time.Time
 	overlayHWND      uintptr
 	lastFrameTime    time.Time
@@ -170,7 +173,7 @@ func setClickThrough(hwnd uintptr, clickThrough bool) {
 	var gwlExStyle int32 = -20
 	cur, _, _ := getStyle.Call(hwnd, uintptr(gwlExStyle))
 	style := uintptr(int64(int32(cur)))
-	style |= WS_EX_LAYERED | WS_EX_NOACTIVATE
+	style |= WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW
 	if clickThrough {
 		style |= WS_EX_TRANSPARENT
 	} else {
@@ -262,6 +265,13 @@ func RenderFrame(g *Game) {
 		}
 	}
 	insertDown = insertState
+
+	endState := GetAsyncKeyState(VK_END)
+	if endState && !endDown {
+		fmt.Println("[+] END pressed. Quitting.")
+		os.Exit(0)
+	}
+	endDown = endState
 
 	if !g.ProbeGame() {
 		giu.Window("Plutana-Wait").Layout(
@@ -586,7 +596,12 @@ func RunOverlay(g *Game) {
 		screenH = 1080
 	}
 
-	wnd := giu.NewMasterWindow("Plutana-Go", screenW, screenH, giu.MasterWindowFlagsNotResizable)
+	wnd := giu.NewMasterWindow(
+		"Plutana-Go",
+		screenW,
+		screenH,
+		giu.MasterWindowFlagsNotResizable|giu.MasterWindowFlagsTransparent,
+	)
 	lastSaveTime = time.Now()
 
 	wnd.Run(func() {
