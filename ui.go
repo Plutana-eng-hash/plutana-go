@@ -285,13 +285,13 @@ func RenderFrame(g *Game) {
 		DoAim(g, players, lp, lt, vm, screenW, screenH)
 	}
 
-	var lpHeadX, lpHeadY, lpHeadZ float32
+	var lpHeadX, lpHeadY float32
 	lpHeadValid := false
 	if lpChar != 0 {
 		lcd := g.CharData(lpChar)
 		if lcd != nil {
 			if head, ok := lcd.Parts["Head"]; ok {
-				lpHeadX, lpHeadY, lpHeadZ, lpHeadValid = g.Pos(head)
+				lpHeadX, lpHeadY, _, lpHeadValid = g.Pos(head)
 			}
 		}
 	}
