@@ -1,0 +1,36 @@
+name: Build Plutana EXE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:   # lets you run it manually from the Actions tab
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: go.sum
+
+      - name: Add MinGW to PATH (required for CGO)
+        run: echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Build EXE
+        env:
+          CGO_ENABLED: '1'
+        run: |
+          go mod tidy
+          go build -trimpath -buildvcs=false -ldflags="-s -w -H=windowsgui" -o Plutana.exe .
+
+      - name: Upload EXE as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Plutana-Windows
+          path: Plutana.exe
