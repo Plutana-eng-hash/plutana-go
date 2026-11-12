@@ -308,7 +308,7 @@ func RenderFrame(g *Game) {
 		}
 	}
 
-	dl := imgui.BackgroundDrawList()
+	dl := giu.GetCanvas().DrawList
 
 	if Settings.ShowFOV && Settings.AimEnabled {
 		cx := float32(screenW) / 2
