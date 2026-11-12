@@ -72,22 +72,16 @@ func getModuleBase(pid uint32, moduleName string) (uintptr, error) {
 	var me windows.ModuleEntry32
 	me.Size = uint32(unsafe.Sizeof(me))
 
-	err = windows.Module32First(snap, &me)
-	if err != nil {
+	if err := windows.Module32First(snap, &me); err != nil {
 		return 0, err
 	}
 
 	for {
-		exePath := windows.UTF16ToString(me.ModuleName[:])
-		basename := exePath
-		if idx := strings.LastIndexAny(exePath, "\\/"); idx >= 0 {
-			basename = exePath[idx+1:]
+		name := windows.UTF16ToString(me.SzModule[:])
+		if strings.EqualFold(name, moduleName) {
+			return me.ModBaseAddr, nil
 		}
-		if strings.EqualFold(basename, moduleName) {
-			return uintptr(unsafe.Pointer(me.ModBaseAddr)), nil
-		}
-		err = windows.Module32Next(snap, &me)
-		if err != nil {
+		if err := windows.Module32Next(snap, &me); err != nil {
 			break
 		}
 	}

@@ -135,7 +135,6 @@ const (
 	WS_EX_LAYERED     = 0x00080000
 	WS_EX_TRANSPARENT = 0x00000020
 	WS_EX_NOACTIVATE  = 0x08000000
-	GWL_EXSTYLE       = -20
 )
 
 var (
@@ -155,11 +154,21 @@ func GetScreenSize() (int, int) {
 	return int(int32(w)), int(int32(h))
 }
 
+func findWindowByTitle(title string) uintptr {
+	user32 := windows.NewLazySystemDLL("user32.dll")
+	proc := user32.NewProc("FindWindowW")
+	u16, _ := windows.UTF16PtrFromString(title)
+	h, _, _ := proc.Call(0, uintptr(unsafe.Pointer(u16)))
+	return h
+}
+
 func setClickThrough(hwnd uintptr, clickThrough bool) {
 	user32 := windows.NewLazySystemDLL("user32.dll")
 	getStyle := user32.NewProc("GetWindowLongPtrW")
 	setStyle := user32.NewProc("SetWindowLongPtrW")
-	cur, _, _ := getStyle.Call(hwnd, uintptr(GWL_EXSTYLE))
+
+	var gwlExStyle int32 = -20
+	cur, _, _ := getStyle.Call(hwnd, uintptr(gwlExStyle))
 	style := uintptr(int64(int32(cur)))
 	style |= WS_EX_LAYERED | WS_EX_NOACTIVATE
 	if clickThrough {
@@ -167,18 +176,12 @@ func setClickThrough(hwnd uintptr, clickThrough bool) {
 	} else {
 		style &^= WS_EX_TRANSPARENT
 	}
-	setStyle.Call(hwnd, uintptr(GWL_EXSTYLE), style)
+	setStyle.Call(hwnd, uintptr(gwlExStyle), style)
 }
 
 func setTopmost(hwnd uintptr) {
 	proc := windows.NewLazySystemDLL("user32.dll").NewProc("SetWindowPos")
 	proc.Call(hwnd, uintptr(^uintptr(0)), 0, 0, 0, 0, 0x0001|0x0002|0x0040)
-}
-
-func findWindowByTitle(title string) uintptr {
-	u16, _ := windows.UTF16PtrFromString(title)
-	h, _ := windows.FindWindow(nil, u16)
-	return uintptr(h)
 }
 
 func calcFPS() float64 {
@@ -261,7 +264,7 @@ func RenderFrame(g *Game) {
 	insertDown = insertState
 
 	if !g.ProbeGame() {
-		giu.SingleWindow().Layout(
+		giu.Window("Plutana-Wait").Layout(
 			giu.Label("Waiting for game..."),
 			giu.Label(fmt.Sprintf("Base 0x%X  DM 0x%X  VE 0x%X", g.mem.Base, g.DM, g.VE)),
 		)
@@ -293,7 +296,7 @@ func RenderFrame(g *Game) {
 		}
 	}
 
-	dl := giu.GetBackgroundDrawList()
+	dl := giu.GetCanvas().DrawList
 
 	if Settings.ShowFOV && Settings.AimEnabled {
 		cx := float32(screenW) / 2
@@ -523,7 +526,7 @@ func espTab() []giu.Widget {
 		giu.Checkbox("Box", &Settings.Box),
 		giu.Checkbox("Corner Box", &Settings.CornerBox),
 		giu.Checkbox("Box Fill", &Settings.BoxFill),
-		giu.SliderInt("Fill Alpha", &Settings.FillAlpha, 0, 255),
+		giu.SliderInt(&Settings.FillAlpha, 0, 255).Label("Fill Alpha"),
 		giu.Checkbox("Dot", &Settings.Dot),
 		giu.Checkbox("Head Dot", &Settings.HeadDot),
 		giu.Checkbox("Skeleton", &Settings.Skeleton),
@@ -538,7 +541,7 @@ func espTab() []giu.Widget {
 		giu.Checkbox("Tracer from Mouse", &Settings.TracerFromMouse),
 		giu.Checkbox("Show FPS", &Settings.ShowFPS),
 		giu.Checkbox("Team Check", &Settings.TeamCheck),
-		giu.SliderInt("Max Distance", &Settings.MaxDistance, 0, 2000),
+		giu.SliderInt(&Settings.MaxDistance, 0, 2000).Label("Max Distance"),
 	}
 }
 
@@ -548,9 +551,9 @@ func aimTab() []giu.Widget {
 		giu.Combo("Aim Key", Settings.AimKey, []string{"RMB", "LMB", "Shift", "Alt", "Ctrl", "E", "Q", "C", "Z", "X"}, &aimKeyIndex),
 		giu.Combo("Target", Settings.AimTarget, []string{"Head", "Torso", "Closest"}, &aimTargetIndex),
 		giu.Checkbox("Ignore Teammates", &Settings.AimIgnoreTeam),
-		giu.SliderInt("Smoothness", &Settings.AimSmooth, 1, 20),
-		giu.SliderInt("Max Distance", &Settings.AimMaxDistance, 0, 2000),
-		giu.SliderInt("FOV Radius", &Settings.FOVRadius, 20, 600),
+		giu.SliderInt(&Settings.AimSmooth, 1, 20).Label("Smoothness"),
+		giu.SliderInt(&Settings.AimMaxDistance, 0, 2000).Label("Max Distance"),
+		giu.SliderInt(&Settings.FOVRadius, 20, 600).Label("FOV Radius"),
 		giu.Checkbox("Show FOV Circle", &Settings.ShowFOV),
 	}
 }
@@ -558,23 +561,23 @@ func aimTab() []giu.Widget {
 func playerTab() []giu.Widget {
 	return []giu.Widget{
 		giu.Checkbox("WalkSpeed Override", &Settings.WalkSpeedEnabled),
-		giu.SliderInt("WalkSpeed", &Settings.WalkSpeed, 16, 100),
+		giu.SliderInt(&Settings.WalkSpeed, 16, 100).Label("WalkSpeed"),
 		giu.Label("Effective max = base x 2.0 (min 40)"),
 		giu.Checkbox("Apply to Vehicles", &Settings.PlayerVehicle),
 		giu.Separator(),
 		giu.Checkbox("JumpPower Override", &Settings.JumpPowerEnabled),
-		giu.SliderInt("JumpPower", &Settings.JumpPower, 50, 200),
+		giu.SliderInt(&Settings.JumpPower, 50, 200).Label("JumpPower"),
 		giu.Label("Effective max = base x 2.0 (min 100)"),
 		giu.Separator(),
 		giu.Checkbox("HipHeight Override", &Settings.HipHeightEnabled),
-		giu.SliderInt("HipHeight", &Settings.HipHeight, 0, 100),
+		giu.SliderInt(&Settings.HipHeight, 0, 100).Label("HipHeight"),
 		giu.Separator(),
 		giu.Checkbox("MaxSlopeAngle Override", &Settings.MaxSlopeEnabled),
-		giu.SliderInt("MaxSlopeAngle", &Settings.MaxSlope, 0, 89),
+		giu.SliderInt(&Settings.MaxSlope, 0, 89).Label("MaxSlopeAngle"),
 		giu.Separator(),
 		giu.Checkbox("Anti-Sit", &Settings.AntiSit),
 		giu.Checkbox("Camera Max Zoom", &Settings.CameraMaxEnabled),
-		giu.SliderInt("Camera Zoom", &Settings.CameraMax, 128, 2000),
+		giu.SliderInt(&Settings.CameraMax, 128, 2000).Label("Camera Zoom"),
 	}
 }
 

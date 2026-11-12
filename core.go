@@ -35,8 +35,7 @@ const (
 
 var HTTPClient = &http.Client{Timeout: 5 * time.Second}
 
-func lazyUser32() *windows.LazyDLL  { return windows.NewLazySystemDLL("user32.dll") }
-func lazyKernel32() *windows.LazyDLL { return windows.NewLazySystemDLL("kernel32.dll") }
+func lazyUser32() *windows.LazyDLL { return windows.NewLazySystemDLL("user32.dll") }
 
 type Memory struct {
 	Handle windows.Handle
