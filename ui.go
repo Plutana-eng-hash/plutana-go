@@ -206,13 +206,13 @@ func calcFPS() float64 {
 	return float64(len(frameTimes)) / sum
 }
 
-func drawFPS(dl *imgui.DrawList, fps float64) {
+func drawFPS(dl imgui.DrawList, fps float64) {
 	text := fmt.Sprintf("FPS: %.0f", fps)
 	dl.AddRectFilled(toVec2(8, 8), toVec2(140, 30), solidVec4(0, 0, 0, 0.78), 0, 0)
 	dl.AddText(toVec2(15, 12), solidVec4(1, 1, 1, 1), text)
 }
 
-func drawDiag(dl *imgui.DrawList, g *Game) {
+func drawDiag(dl imgui.DrawList, g *Game) {
 	y := float32(36)
 	lines := []struct {
 		txt string
@@ -369,10 +369,6 @@ func RenderFrame(g *Game) {
 				if hp3, ok := partMap["Head"]; ok {
 					dx := hp3.x - lpHeadX
 					dy := hp3.y - lpHeadY
-					dz := hp3.x - lpHeadZ
-					_ = dz
-					_ = dx
-					_ = dy
 					dist = float32(math.Sqrt(float64(dx*dx + dy*dy)))
 				}
 			}
@@ -413,7 +409,7 @@ func RenderFrame(g *Game) {
 			}
 
 			if Settings.Dot {
-				dl.AddCircleFilled(toVec2(cx, cy), 3, toVec4(Settings.ColDot), 0)
+				dl.AddCircleFilled(toVec2(cx, cy), 3, toVec4(Settings.ColDot))
 			}
 
 			if Settings.Health {
@@ -458,7 +454,7 @@ func RenderFrame(g *Game) {
 			if Settings.SkeletonDots {
 				c := toVec4(Settings.ColSkel)
 				for _, p := range pts {
-					dl.AddCircleFilled(toVec2(p.x, p.y), 2.5, c, 0)
+					dl.AddCircleFilled(toVec2(p.x, p.y), 2.5, c)
 				}
 			}
 

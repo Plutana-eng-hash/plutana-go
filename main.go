@@ -77,7 +77,7 @@ func getModuleBase(pid uint32, moduleName string) (uintptr, error) {
 	}
 
 	for {
-		name := windows.UTF16ToString(me.SzModule[:])
+		name := windows.UTF16ToString(me.Module[:])
 		if strings.EqualFold(name, moduleName) {
 			return me.ModBaseAddr, nil
 		}
